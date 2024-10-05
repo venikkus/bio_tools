@@ -150,7 +150,7 @@ processing DNA or RNA sequences.
 ---
 Authors:
 * **Software:** [*venikkus*](https://github.com/venikkus), Saint-Petersburg, Russia.
-* **Idea, supervisor:** *, [Bioinformatics Institute](https://bioinf.me/en),
+* **Idea, supervisor:** [Bioinformatics Institute](https://bioinf.me/en),
   Saint-Petersburg, Russia.
 
 ---
