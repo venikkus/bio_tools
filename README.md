@@ -195,7 +195,7 @@ The program contains two main functions and additional modules for them.
 2. filter_fastq takes a dictionary with reads and reading quality
    indicators and calculates for them:
 
-    - the GC composition of a read.
+    - the GC composition of a read
     - the quality of a read.
 
 
