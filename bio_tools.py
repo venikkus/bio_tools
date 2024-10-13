@@ -1,42 +1,44 @@
-from modules import dna_rna_tools_modules, filter_fastq_modules
+from modules import dna_rna_tools_modules as drtm
+from modules import filter_fastq_modules as ffm
 
 """
-Модуль предоставляет функции для обработки
-ДНК/РНК последовательностей и фильтрации данных FASTQ.
+The module provides functions for processing
+DNA/RNA sequences and filtering FASTQ data.
 
-Функции:
-- run_dna_rna_tools: Выполняет операции над последовательностями ДНК/РНК.
-- filter_fastq: Фильтрует FASTQ файлы по заданным
-параметрам качества, длины и GC-содержания.
+Functions:
+- run_dna_rna_tools: Performs operations on DNA/RNA sequences.
+- filter_fastq: Filters FASTQ files by specified
+parameters of quality, length and GC content.
 
-Автор: Ника Самусик
+Author: Nika Samusik
 """
 
 
-def run_dna_rna_tools(*args):
+def run_dna_rna_tools(*args) -> list | str:
     """
-    Выполняет операцию с последовательностями ДНК или РНК
-    из модуля dna_rna_tools_modules
+    Performs an operation on DNA or RNA sequences
+from the drtm module
 
     Parameters
     ----------
     *args : tuple, str
-        последовательности ДНК/РНК и элемент с названием операции.
-        Операция должна быть передана последним аргументом.
+        DNA/RNA sequences and an element with the operation name.
+        The operation must be passed as the last argument.
 
     Returns
     -------
     answer : list, str
-        Результаты или результат выполнения функций из модуля
-        dna_rna_tools_modules. Предупреждение о неправильном вводе,
-        если поданные данные не содержат операции или подают неверную операцию
+        Results or result of executing functions from the module
+        drtm. Invalid input warning
+        if the submitted data does not contain an operation or
+        submits an invalid operation
 
     Raises
     -------
     ValueError
-        если последовательности не являются ДНК/РНК или
+        if the sequences are not DNA/RNA or
     KeyError
-        если операция не поддерживается
+        if the operation is not supported
     """
     if len(args) == 1:
         raise ValueError("There is no operation or sequence")
@@ -45,91 +47,88 @@ def run_dna_rna_tools(*args):
     args = args[:-1]
 
     # check if it is a DNA or RNA at all
-    if not dna_rna_tools_modules.is_nucleotide(*args):
+    if not drtm.is_nucleotide(*args):
         raise ValueError("This is not a DNA/RNA sequence at all")
 
-    if operation in [
-        "transcribe",
-        "reverse",
-        "complement",
-        "reverse_complement",
-        "annealing_temperature",
-        "is_palindrome",
-        "is_primer",
-    ]:
-        answer = [
-            getattr(dna_rna_tools_modules, operation)(arg) for arg in args
-        ]
-        return answer[0] if len(answer) == 1 else answer
-    else:
+    try:
+        answer = [getattr(drtm,
+                          operation)(arg) for arg in args]
+    except KeyError:
         raise KeyError(f"Operation {operation} is not supported.")
+    else:
+        return answer[0] if len(answer) == 1 else answer
 
 
 def filter_fastq(
-    fastq_file,
+    input_fastq,
+    output_fastq=None,
     gc_bounds=(0, 100),
     length_bounds=(0, 2**32),
     quality_threshold=0
 ):
     """
-    Фильтрует последовательности на соответствие параметрам качества,
-    длины и GC-состава.
+    Filters sequences according to quality, length and GC content parameters.
 
     Parameters
     ----------
     fastq_file : dict
-        входные данные: словарь, где ключ — имя последовательности,
-        значение — кортеж (строка последовательности, строка качества).
+        input data: dictionary, where key is the sequence name,
+        value is a tuple (sequence string, quality string).
     gc_bounds : int, tuple, default: 0, 100
-        пороги содержания GC в последовательности.
-        Можно задать только верхний порог
+        GC content thresholds in the sequence.
+        You can set an upper threshold and not set a lower one
     length_bounds : int, tuple, default: 0, 2**32
-        пороги длины последовательности. Можно задать только верхний порог
+        sequence length thresholds.
+        You can set an upper threshold and not set a lower one
     quality_threshold : int, default: 0
-        Минимальный порог качества для фильтрации последовательностей
+        Minimum quality threshold for filtering sequences
 
     Returns
     -------
     dict
-        Отфильтрованные данные FASTQ
+        Filtered FASTQ data
 
     Raises
     -------
     ValueError
-        если значения GC-состава или длины выходят за пределы.
+        if the GC composition or length values ​​are outside the limits.
     """
-    filtered_fastq = {}
-    for seq_name, seq_data in fastq_file.items():
-        seq, quality = seq_data
+    gc_bounds = ffm.make_bounds(gc_bounds)
+    length_bounds = ffm.make_bounds(length_bounds)
 
-        gc_content = filter_fastq_modules.calculate_gc_bounds(seq)
-        seq_length = len(seq)
-        q_score = filter_fastq_modules.calculate_quality_threshold(quality)
+    if output_fastq:
+        outfile = open(output_fastq, 'w')
+    else:
+        outfile = None
 
-        if isinstance(gc_bounds, int):
-            lower_gc_threshold, upper_gc_threshold = 0, gc_bounds
-        else:
-            lower_gc_threshold, upper_gc_threshold = gc_bounds
+    with open(input_fastq, 'r') as infile:
+        while True:
+            header = infile.readline().strip()
+            if not header:
+                break
 
-        if lower_gc_threshold < 0 or upper_gc_threshold > 100:
-            raise ValueError("GC composition limits must be between 0 and 100")
+            seq = infile.readline().strip()
+            infile.readline()  # skip the quality header.
+            quality = infile.readline().strip()
 
-        if isinstance(length_bounds, int):
-            lower_length_threshold, upper_length_threshold = 0, length_bounds
-        else:
-            lower_length_threshold, upper_length_threshold = length_bounds
+            gc_content = ffm.calculate_gc_bounds(seq)
+            seq_len = len(seq)
+            q_score = ffm.calculate_quality_threshold(quality)
 
-        if (
-            lower_length_threshold < 0
-            or upper_length_threshold < lower_length_threshold
-        ):
-            raise ValueError("Length limits are specified incorrectly.")
+            if (
+                q_score >= quality_threshold
+                and ffm.is_bounded(gc_bounds, gc_content)
+                and ffm.is_bounded(length_bounds, seq_len)
+            ):
+                ffm.write_fastq(header, seq, quality, output_fastq)
+    if outfile:
+        outfile.close()
 
-        if (
-            lower_gc_threshold <= gc_content <= upper_gc_threshold
-            and lower_length_threshold <= seq_length <= upper_length_threshold
-            and q_score >= quality_threshold
-        ):
-            filtered_fastq[seq_name] = (seq, quality)
 
-    return filtered_fastq
+filter_fastq(
+    input_fastq='data/example_fastq.fastq',
+    output_fastq='data/output_fastq.txt',
+    gc_bounds=(40, 100),
+    length_bounds=(15, 2**32),
+    quality_threshold=33
+)

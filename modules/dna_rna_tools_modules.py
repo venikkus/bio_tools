@@ -47,20 +47,23 @@ RNA_TO_DNA = {
 
 
 # transcribe — вернуть транскрибированную последовательность
-def transcribe(arg):
+def transcribe(arg) -> str:
     """
-    Функция принимает на вход последовательность из ДНК или РНК и возвращает
-    транскрибированную последовательность
+    Transcribes the given DNA or RNA sequence.
+
+    This function replaces nucleotides in the sequence based on transcription
+    rules. For example, DNA adenine (A) is transcribed to RNA uracil (U), and
+    vice versa.
 
     Parameters
     ----------
     arg : str
-        нуклеотидная последовательность: ДНК или РНК
+        A nucleotide sequence: either DNA or RNA.
 
     Returns
     -------
     result : str
-        Транскрибированная последовательность нуклеотидов РНК или ДНК
+        The transcribed RNA or DNA nucleotide sequence.
     """
     result = ""
 
@@ -73,39 +76,44 @@ def transcribe(arg):
 
 
 # reverse — вернуть развёрнутую последовательность
-def reverse(arg):
+def reverse(arg) -> str:
     """
-    Функция принимает на вход последовательность из ДНК или РНК и возвращает
-    развёрнутую последовательность
+    Reverses the given DNA or RNA sequence.
+
+    This function returns the reversed version of the input nucleotide
+    sequence.
 
     Parameters
     ----------
     arg : str
-        нуклеотидная последовательность: ДНК или РНК
+        A nucleotide sequence: either DNA or RNA.
 
     Returns
     -------
     result : str
-        Развёрнутая последовательность нуклеотидов
+        The reversed nucleotide sequence.
     """
     return arg[::-1]
 
 
 # complement — вернуть комплементарную последовательность
-def complement(arg):
+def complement(arg) -> str:
     """
-    Функция принимает на вход последовательность из ДНК или РНК и возвращает
-    комплементарную ей последовательность
+    Returns the complementary sequence for the given DNA or RNA sequence.
+
+    This function computes the complementary nucleotide sequence by
+    replacing each nucleotide with its pair: A with T/U,
+    C with G, and vice versa.
 
     Parameters
     ----------
     arg : str
-        нуклеотидная последовательность: ДНК или РНК
+        A nucleotide sequence: either DNA or RNA.
 
     Returns
     -------
     result : str
-        Комплементарная последовательность нуклеотидов
+        The complementary nucleotide sequence.
     """
     result = ""
     for letter in arg:
@@ -117,20 +125,22 @@ def complement(arg):
 
 
 # reverse_complement — вернуть обратную комплементарную последовательность
-def reverse_complement(arg):
+def reverse_complement(arg) -> str:
     """
-    Функция принимает на вход последовательность из ДНК или РНК и возвращает
-    комплементарную и развёрнутую последовательность
+    Returns the reverse complement of the given DNA or RNA sequence.
+
+    This function computes both the complement and the reverse
+    of the input sequence.
 
     Parameters
     ----------
     arg : str
-        нуклеотидная последовательность: ДНК или РНК
+        A nucleotide sequence: either DNA or RNA.
 
     Returns
     -------
     result : str
-        Развёрнутая комплементарная последовательность нуклеотидов
+        The reverse complement of the nucleotide sequence.
     """
     arg = complement(arg)
     return reverse(arg)
@@ -139,18 +149,20 @@ def reverse_complement(arg):
 # is_palindrome — является ли поданная последовательность биопалиндромом
 def is_palindrome(arg) -> bool:
     """
-    Проверяет, соответствует ли поданная последовательность
-    комплементарной развёрнутой последовательности
+    Checks whether the given sequence is a biological palindrome.
+
+    A biological palindrome is a sequence that is equal to
+    it's reverse complement.
 
     Parameters
     ----------
     arg : str
-        нуклеотидная последовательность
+        A nucleotide sequence.
 
     Returns
     -------
     bool
-        True если является биопалиндромом, False если не является
+        True if the sequence is a biological palindrome, False otherwise.
     """
     reverse = ""
     for letter in arg.lower():
@@ -163,20 +175,22 @@ def is_palindrome(arg) -> bool:
 
 
 # annealing_temperature — подсчёт температуры отжига праймера
-def annealing_temperature(arg):
+def annealing_temperature(arg) -> float:
     """
-    Считает температуру отжига последовательности по формуле
-    Tm (°C ) = 2 х (A+T) + 4 х (G+C)
+    Calculates the melting temperature (Tm) of the given sequence.
+
+    The Tm is calculated using the formula:
+    Tm (°C) = 2 * (A + T) + 4 * (G + C)
 
     Parameters
     ----------
     arg : str
-        нуклеотидная последовательность
+        A nucleotide sequence.
 
     Returns
     -------
     result : float
-        Температура отжига последовательности
+        The melting temperature of the sequence.
     """
     arg = arg.lower()
     count_a = arg.count("a")
@@ -192,18 +206,20 @@ def annealing_temperature(arg):
 # is_primer — является ли поданная последовательность праймером
 def is_primer(arg) -> bool:
     """
-    Проверяет, соответствует ли поданная последовательность параметрам
-    праймера: GC-составу > 0.4 и < 0.6, Tm (°C ) > 55°C
+    Checks if the given sequence meets primer criteria.
+
+    A primer must have a GC content between 40% and 60%
+    and a melting temperature (Tm) > 55°C.
 
     Parameters
     ----------
     arg : str
-        нуклеотидная последовательность
+        A nucleotide sequence.
 
     Returns
     -------
     bool
-        True если является праймером, False если не является
+        True if the sequence meets primer criteria, False otherwise.
     """
     arg = arg.lower()
 
@@ -222,17 +238,21 @@ def is_primer(arg) -> bool:
 # is_nucleotide — является ли поданная последовательность нуклеотидной
 def is_nucleotide(*args) -> bool:
     """
-    Проверяет, является ли поданное значение ДНК или РНК
+    Checks if the given sequence(s) represent valid DNA or RNA.
+
+    A valid nucleotide sequence contains only A, T, G, C (for DNA)
+    or A, U, G, C (for RNA), and it cannot contain both U and T
+    in the same sequence.
 
     Parameters
     ----------
-    *args
-        список из последовательностей
+    *args : str
+        A list of nucleotide sequences.
 
     Returns
     -------
     bool
-        True если является ДНК или РНК, False если не является
+        True if all provided sequences are valid DNA or RNA, False otherwise.
     """
     for arg in args:
         if "u" in arg.lower() and "t" in arg.lower():
