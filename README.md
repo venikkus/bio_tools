@@ -26,6 +26,9 @@ clone the repository to your computer.
 
 ```bash
 git clone git@github.com:venikkus/bio_tools.git
+
+cd bio_tools
+pip install -r requirements.txt
 ```
 ---
 ## Running instructions
@@ -34,32 +37,37 @@ To work with the package, you can import the main script (bio_tools or bio_files
 
 ## Features
 
-There are two scripts, which have 5 functions and additional modules for them.
-### 1. bio_tools
+### 1. **bio_tools.py**
+This script provides core functionality for processing nucleic acid and protein sequences:
 
-This script has 2 main function and additional additional modules for them.
-   
-   1. **run_dna_rna_tools** takes a string and an operation and performs one of actions.
+#### **Biological Sequences Processing**
+- **NucleicAcidSequence** — class for RNA and DNA sequences.
+  - `.get_complement()` - complementing the sequence.
+  - `.reverse()` - reversing the sequence.
+  - `.reverse_complement()` - obtaining the reverse complement.
+  - `.annealing_temperature()`- Calculating the annealing temperature.
+  - `.check_palindrome()`- Checking if the sequence is a valid primer or palindrome.
 
-   - transcribe — transcribes a sequence
-   - complement — converts a forward sequence to a complementary
-   - reverse — reverses a sequence
-   - reverse_complement — converts a forward sequence to a reverse complementary sequence
-   - annealing_temperature — calculates the annealing temperature of a sequence
-   - is_palindrome — checks the supplied sequence is a biopalindrome
-   - is_nucleotide — checks the supplied sequence is a nucleotide
-   - is_primer — checks the supplied sequence is a primer
+- **DNASequence** — class for DNA sequences.
+  - `.transcribe()` — transcribes DNA to RNA.
+  - `.get_complement()` — computes the complementary sequence.
+  - `.reverse_complement()` — computes the reverse complement.
+  - `.annealing_temperature()` — calculates the annealing temperature.
+  - `.check_primer()` — determines if the sequence is a valid primer.
+  - `.check_palindrome()` — checks if the sequence is a palindrome.
 
-   2. **filter_fastq** takes raw ``.fasta`` file with reads and reading quality indicators and calculates GC composition of the read, the quality of the read and save filtered data in ``.txt`` file. The module contains auxiliary functions that help with output, file recording, and calculation of filter parameters:
-   - calculate_gc_bounds — calculates the GC content of a nucleotide sequence
-   - calculate_quality_threshold — calculates the average Q-score of a nucleotide sequence from a FASTQ file
-   - make_bounds — creates bounds from an integer or returns the given bounds as is
-   - is_bounded — checks if a value is within the specified bounds
-   - read_fastq — reads a FASTQ file and converts it to a dictionary
-   - write_fastq — writes the filtered sequences to a FASTQ file
+- **RNASequence** — class for RNA sequences.
+  - `.reverse_transcribe()` — Converts RNA back into DNA.
+  - `.reverse_complement()` — Computes the reverse complement.
 
+- **AminoAcidSequence** — class for protein sequences.
+  - `.molecular_weight()` — Calculates the molecular weight of a protein.
 
-
+#### **FASTQ Processing** 
+- **filter_fastq()** — takes raw ``.fasta`` file with reads and reading quality indicators and calculates GC composition of the read, the quality of the read and save filtered data in ``.txt`` file. Filters a FASTQ file based on:
+  - GC content,
+  - Sequence length,
+  - Quality score.
 
 ### 2. bio_files_processor
 
@@ -86,14 +94,63 @@ All script functions collect data into the file if you specify path to it. Other
 
 ## Examples
 
-Bio_tools contains 8 simple function. For example, let's try transcribe function:
+Class DNASequence:
 ```
-run_dna_rna_tools("AGt", "transcribe")
+dna = DNASequence("ATGCGT")
+print(f"DNA: {dna}")
+print(f"Complement: {dna.get_complement()}")
+print(f"Reverse complement: {dna.reverse_complement()}")
+print(f"Transcribed RNA: {dna.transcribe()}")
+
 ```
-Result of the function is transcribed sequence:
+
+Output:
+```{python}
+DNA: ATGCGT
+Complement: TACGCA
+Reverse complement: ACGCAT
+Transcribed RNA: AUGCGU
 ```
-"AGu"
+
+Class RNASequence:
 ```
+rna = RNASequence("AUGCGU")
+print(f"RNA: {rna}")
+print(f"Complement: {rna.get_complement()}")
+print(f"Reverse complement: {rna.reverse_complement()}")
+print(f"Reverse transcribed DNA: {rna.reverse_transcribe()}")
+```
+Output:
+```
+RNA: AUGCGU
+Complement: UACGCA
+Reverse complement: ACGCAU
+Reverse transcribed DNA: ATGCGT
+```
+
+Class AminoAcidSequence:
+```
+protein = AminoAcidSequence("MVK")
+print(f"Protein: {protein}")
+print(f"Molecular weight: {protein.molecular_weight()}")
+```
+
+Output:
+```
+Protein: MVK
+Molecular weight: 412.5
+```
+
+If you try on DNASequence or RNASequence on invalid symbols or blank line into sequences it will raise custom error:
+
+```
+DNASequence("ATGX")
+DNASequence("")
+
+FAILED dna_rna_tools_test.py::test_invalid_dna - ValueError: Invalid symbols: {'X'}
+FAILED dna_rna_tools_test.py::test_empty_string - ValueError: Sequence cannot be empty.
+```
+
 
 Let`s try **bio_files_processor** functions with our [example data](https://github.com/venikkus/bio_tools/tree/add_bio_tools/data).
 
