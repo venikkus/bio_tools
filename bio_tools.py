@@ -50,7 +50,30 @@ RNA_TO_DNA = {
     "g": "c",
     "c": "g",
 }
-
+weights = {
+            "A": 89,
+            "R": 174,
+            "N": 132,
+            "D": 133,
+            "B": 133,
+            "C": 121,
+            "Q": 146,
+            "E": 147,
+            "Z": 147,
+            "G": 75,
+            "H": 155,
+            "I": 131,
+            "L": 131,
+            "K": 146,
+            "M": 149,
+            "F": 165,
+            "P": 115,
+            "S": 105,
+            "T": 119,
+            "W": 204,
+            "Y": 181,
+            "V": 117,
+        }
 
 class BiologicalSequence(ABC):
     """
@@ -176,30 +199,7 @@ class AminoAcidSequence(BiologicalSequence):
     def __init__(self, sequence: str):
         super().__init__(sequence, self.VALID_AA_ALPHABET)
 
-    def molecular_weight(self):
-        """Вычисление молекулярной массы белка."""
-        weights = {
-            "A": 89.1,
-            "C": 121.2,
-            "D": 133.1,
-            "E": 147.1,
-            "F": 165.2,
-            "G": 75.1,
-            "H": 155.2,
-            "I": 131.2,
-            "K": 146.2,
-            "L": 131.2,
-            "M": 149.2,
-            "N": 132.1,
-            "P": 115.1,
-            "Q": 146.2,
-            "R": 174.2,
-            "S": 105.1,
-            "T": 119.1,
-            "V": 117.1,
-            "W": 204.2,
-            "Y": 181.2,
-        }
+    def molecular_weight(self, weight):
         return sum(weights[aa] for aa in self.sequence)
 
 
@@ -235,7 +235,6 @@ def filter_fastq(
 
             if (min_gc <= seq_gc <= max_gc and min_len <= seq_len <= max_len and avg_quality >= quality_threshold):
                 filtered_sequences.append(record)
-
     if output_fastq:
         with open(output_fastq, "w") as outfile:
             SeqIO.write(filtered_sequences, outfile, "fastq")
