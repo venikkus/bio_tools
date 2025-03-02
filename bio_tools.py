@@ -1,62 +1,206 @@
-from modules import dna_rna_tools_modules as drtm
-from modules import filter_fastq_modules as ffm
+from abc import ABC, abstractmethod
+from Bio import SeqIO
+from Bio.SeqUtils import gc_fraction
 
 """
-The module provides functions for processing
-DNA/RNA sequences and filtering FASTQ data.
-
-Functions:
-- run_dna_rna_tools: Performs operations on DNA/RNA sequences.
-- filter_fastq: Filters FASTQ files by specified
-parameters of quality, length and GC content.
+This module provides classes and functions for processing biological sequences, including DNA, RNA, and proteins.
+It also includes functionality for filtering FASTQ files based on sequence quality, length, and GC content.
 
 Author: Nika Samusik
 """
 
+DIFF_DNA_RNA = {"T": "U", "t": "u", "U": "T", "u": "t"}
+DNA_TO_RNA = {
+    "A": "U",
+    "T": "A",
+    "G": "C",
+    "C": "G",
+    "a": "u",
+    "t": "a",
+    "g": "c",
+    "c": "g",
+}
+RNA_TO_RNA = {
+    "A": "U",
+    "U": "A",
+    "G": "C",
+    "C": "G",
+    "a": "u",
+    "u": "a",
+    "g": "c",
+    "c": "g",
+}
+DNA_TO_DNA = {
+    "A": "T",
+    "T": "A",
+    "G": "C",
+    "C": "G",
+    "a": "t",
+    "t": "a",
+    "g": "c",
+    "c": "g",
+}
+RNA_TO_DNA = {
+    "A": "T",
+    "U": "A",
+    "G": "C",
+    "C": "G",
+    "a": "t",
+    "u": "a",
+    "g": "c",
+    "c": "g",
+}
+weights = {
+            "A": 89,
+            "R": 174,
+            "N": 132,
+            "D": 133,
+            "B": 133,
+            "C": 121,
+            "Q": 146,
+            "E": 147,
+            "Z": 147,
+            "G": 75,
+            "H": 155,
+            "I": 131,
+            "L": 131,
+            "K": 146,
+            "M": 149,
+            "F": 165,
+            "P": 115,
+            "S": 105,
+            "T": 119,
+            "W": 204,
+            "Y": 181,
+            "V": 117,
+        }
 
-def run_dna_rna_tools(*args) -> list | str:
+class BiologicalSequence(ABC):
     """
-    Performs an operation on DNA or RNA sequences
-from the drtm module
+    An abstract class representing a biological sequence.
 
-    Parameters
-    ----------
-    *args : tuple, str
-        DNA/RNA sequences and an element with the operation name.
-        The operation must be passed as the last argument.
-
-    Returns
-    -------
-    answer : list, str
-        Results or result of executing functions from the module
-        drtm. Invalid input warning
-        if the submitted data does not contain an operation or
-        submits an invalid operation
-
-    Raises
-    -------
-    ValueError
-        if the sequences are not DNA/RNA or
-    KeyError
-        if the operation is not supported
+    Provides common functionality for handling sequences, such as:
+    - Validation of the sequence alphabet.
+    - Standardized string representation.
+    - Indexing and slicing support.
     """
-    if len(args) == 1:
-        raise ValueError("There is no operation or sequence")
 
-    operation = args[-1]
-    args = args[:-1]
+    def __init__(self, sequence: str, valid_alphabet: set):
+        if not sequence:
+            raise ValueError("Sequence cannot be empty.")
+        self.sequence = sequence.upper()
+        self.valid_alphabet = valid_alphabet
+        self._validate_sequence()
 
-    # check if it is a DNA or RNA at all
-    if not drtm.is_nucleotide(*args):
-        raise ValueError("This is not a DNA/RNA sequence at all")
+    def _validate_sequence(self):
+        if not set(self.sequence).issubset(self.valid_alphabet):
+            raise ValueError(
+                f"Invalid symbols: {set(self.sequence) - self.valid_alphabet}"
+            )
 
-    try:
-        answer = [getattr(drtm,
-                          operation)(arg) for arg in args]
-    except KeyError:
-        raise KeyError(f"Operation {operation} is not supported.")
-    else:
-        return answer[0] if len(answer) == 1 else answer
+    def __len__(self):
+        return len(self.sequence)
+
+    def __getitem__(self, index):
+        return self.sequence[index]
+
+    def __str__(self):
+        return self.sequence
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}('{self.sequence}')"
+
+    @abstractmethod  # переопределяем его дальше
+    def get_complement(self):
+        pass
+
+
+class NucleicAcidSequence(BiologicalSequence):
+    """
+    Represents a nucleic acid sequence (DNA or RNA).
+
+    Provides methods for:
+    - Complementing the sequence.
+    - Reversing the sequence.
+    - Obtaining the reverse complement.
+    - Calculating the annealing temperature.
+    - Checking if the sequence is a valid primer or palindrome.
+    """
+
+    complement_map = {}
+
+    def get_complement(self):
+        return self.__class__("".join(self.complement_map[n] for n in self.sequence))
+
+    def reverse(self):
+        return self.__class__(self.sequence[::-1])
+
+    def reverse_complement(self):
+        return self.get_complement().reverse()
+
+    def annealing_temperature(self):
+        return 2 * (self.sequence.count("A") + self.sequence.count("T")) + 4 * (
+            self.sequence.count("G") + self.sequence.count("C")
+        )
+
+    def check_palindrome(self):
+        return self.sequence == self.reverse_complement().sequence
+
+    def check_primer(self):
+        seq_len = len(self.sequence)
+        if seq_len < 16 or seq_len > 30:
+            return False
+        gc_content = (self.sequence.count("G") + self.sequence.count("C")) / seq_len
+        tm = self.annealing_temperature()
+        return 0.4 <= gc_content <= 0.6 and tm > 55 and self.sequence[-1] in {"G", "C"}
+
+
+class DNASequence(NucleicAcidSequence):
+    """
+    Represents a DNA sequence.
+
+    Provides functionality for transcription into RNA.
+    """
+
+    complement_map = {"A": "T", "T": "A", "G": "C", "C": "G"}
+
+    def __init__(self, sequence: str):
+        super().__init__(sequence, {"A", "T", "G", "C"})
+
+    def transcribe(self):
+        return RNASequence("".join(DIFF_DNA_RNA.get(n, n) for n in self.sequence))
+
+
+class RNASequence(NucleicAcidSequence):
+    """
+    Represents an RNA sequence.
+
+    Provides functionality for reverse transcription into DNA.
+    """
+
+    complement_map = {"A": "U", "U": "A", "G": "C", "C": "G"}
+
+    def __init__(self, sequence: str):
+        super().__init__(sequence, {"A", "U", "G", "C"})
+
+    def transcribe(self):
+        return DNASequence("".join(DIFF_DNA_RNA.get(n, n) for n in self.sequence))
+
+
+class AminoAcidSequence(BiologicalSequence):
+    """
+    Represents an amino acid sequence.
+
+    Provides functionality for computing molecular weight.
+    """
+
+    VALID_AA_ALPHABET = set("ACDEFGHIKLMNPQRSTVWY")
+
+    def __init__(self, sequence: str):
+        super().__init__(sequence, self.VALID_AA_ALPHABET)
+
+    def molecular_weight(self, weight):
+        return sum(weights[aa] for aa in self.sequence)
 
 
 def filter_fastq(
@@ -64,71 +208,35 @@ def filter_fastq(
     output_fastq=None,
     gc_bounds=(0, 100),
     length_bounds=(0, 2**32),
-    quality_threshold=0
+    quality_threshold=0,
 ):
     """
-    Filters sequences according to quality, length and GC content parameters.
+    Filters sequences from a FASTQ file based on GC content, length, and quality.
 
-    Parameters
-    ----------
-    fastq_file : dict
-        input data: dictionary, where key is the sequence name,
-        value is a tuple (sequence string, quality string).
-    gc_bounds : int, tuple, default: 0, 100
-        GC content thresholds in the sequence.
-        You can set an upper threshold and not set a lower one
-    length_bounds : int, tuple, default: 0, 2**32
-        sequence length thresholds.
-        You can set an upper threshold and not set a lower one
-    quality_threshold : int, default: 0
-        Minimum quality threshold for filtering sequences
-
-    Returns
-    -------
-    dict
-        Filtered FASTQ data
-
-    Raises
-    -------
-    ValueError
-        if the GC composition or length values ​​are outside the limits.
+    Parameters:
+    - input_fastq: Path to the input FASTQ file.
+    - output_fastq: Optional path to save filtered sequences.
+    - gc_bounds: GC content filtering range (default: 0-100).
+    - length_bounds: Length filtering range (default: 0-2**32).
+    - quality_threshold: Minimum average quality for filtering (default: 0).
     """
-    gc_bounds = ffm.make_bounds(gc_bounds)
-    length_bounds = ffm.make_bounds(length_bounds)
+    min_gc, max_gc = gc_bounds
+    min_len, max_len = length_bounds
 
+    filtered_sequences = []
+
+    with open(input_fastq, "r") as infile:
+        records = SeqIO.parse(infile, "fastq")
+
+        for record in records:
+            seq_gc = gc_fraction(record.seq) * 100
+            seq_len = len(record.seq)
+            avg_quality = sum(record.letter_annotations["phred_quality"]) / seq_len
+
+            if (min_gc <= seq_gc <= max_gc and min_len <= seq_len <= max_len and avg_quality >= quality_threshold):
+                filtered_sequences.append(record)
     if output_fastq:
-        outfile = open(output_fastq, 'w')
+        with open(output_fastq, "w") as outfile:
+            SeqIO.write(filtered_sequences, outfile, "fastq")
     else:
-        outfile = None
-
-    with open(input_fastq, 'r') as infile:
-        while True:
-            header = infile.readline().strip()
-            if not header:
-                break
-
-            seq = infile.readline().strip()
-            infile.readline()  # skip the quality header.
-            quality = infile.readline().strip()
-
-            gc_content = ffm.calculate_gc_bounds(seq)
-            seq_len = len(seq)
-            q_score = ffm.calculate_quality_threshold(quality)
-
-            if (
-                q_score >= quality_threshold
-                and ffm.is_bounded(gc_bounds, gc_content)
-                and ffm.is_bounded(length_bounds, seq_len)
-            ):
-                ffm.write_fastq(header, seq, quality, output_fastq)
-    if outfile:
-        outfile.close()
-
-
-filter_fastq(
-    input_fastq='data/example_fastq.fastq',
-    output_fastq='data/output_fastq.txt',
-    gc_bounds=(40, 100),
-    length_bounds=(15, 2**32),
-    quality_threshold=33
-)
+        return filtered_sequences

@@ -1,41 +1,52 @@
-from bio_tools import run_dna_rna_tools as rdrt
+from bio_tools import DNASequence, RNASequence
+import pytest
 
 
 def test_transcribe():
-    assert rdrt("ATG", "transcribe") == "AUG"
-    assert rdrt("AGt", "transcribe") == "AGu"
+    assert str(DNASequence("ATG").transcribe()) == "AUG"
+    assert str(DNASequence("AGt").transcribe()) == "AGU"
 
 
 def test_reverse():
-    assert rdrt("ATG", "reverse") == "GTA"
-    assert rdrt("cUG", "reverse") == "GUc"
+    assert str(DNASequence("ATG").reverse()) == "GTA"
+    assert str(RNASequence("cUG").reverse()) == "GUC"
 
 
 def test_complement():
-    assert rdrt("AtG", "complement") == "TaC"
-    assert rdrt("CUG", "complement") == "GAC"
+    assert str(DNASequence("AtG").get_complement()) == "TAC"
+    assert str(RNASequence("CUG").get_complement()) == "GAC"
 
 
 def test_reverse_complement():
-    assert rdrt("ATg", "reverse_complement") == "cAT"
-    assert rdrt("CUG", "reverse_complement") == "CAG"
+    assert str(DNASequence("ATg").reverse_complement()) == "CAT"
+    assert str(RNASequence("CUG").reverse_complement()) == "CAG"
 
 
 def test_multiple_args():
-    assert rdrt("ATG", "aT", "reverse") == ["GTA", "Ta"]
-    assert rdrt("ttG", "AT", "ATc", "complement") == ["aaC", "TA", "TAg"]
+    assert [str(DNASequence(seq).reverse()) for seq in ["ATG", "aT"]] == ["GTA", "TA"]
+    assert [str(DNASequence(seq).get_complement()) for seq in ["ttG", "AT", "ATc"]] == ["AAC", "TA", "TAG"]
 
 
 def test_palindrom():
-    assert rdrt("ACCGCGGT", "ACCGCGGT", "is_palindrome") == [True, True]
-    assert rdrt("ACCGCGGT", "AT", "ATc", "is_palindrome") == [True, True, False]
+    assert [str(DNASequence(seq).check_palindrome()) for seq in ["ACCGCGGT", "ACCGCGGT"]] == ['True', 'True']
+    assert [str(DNASequence(seq).check_palindrome()) for seq in ["ACCGCGGT", "AT", "ATc"]] == ['True', 'True', 'False']
 
 
 def test_primer():
-    assert rdrt("GTTGTAAAACGACGGCCAGTGGGG", "AGCGGATAACAATTTCACACAGGAGGGGC", "is_primer") == [True, True]
-    assert rdrt("GAaTTgAATTc", "ACCGCGGT", "AT", "ATc", "is_primer") == [False, False, False, False]
+    assert [str(DNASequence(seq).check_primer()) for seq in ["GTTGTAAAACGACGGCCAGTGGGG", 
+                                                             "AGCGGATAACAATTTCACACAGGAGGGGC"]] == ['True', 'True']
+    assert [str(DNASequence(seq).check_primer()) for seq in ["GAaTTgAATTc", 
+                                                             "ACCGCGGT", "AT", "ATc"]] == ['False', 'False', 'False', 'False']
 
 
 def test_annealing_temperature():
-    assert rdrt("ATGC", "atGc", "annealing_temperature") == [12, 12]
-    assert rdrt("atGc", "annealing_temperature") == 12
+    assert DNASequence("ATGC").annealing_temperature() == 12
+    assert DNASequence("atGc").annealing_temperature() == 12
+
+
+# def test_invalid_dna():
+#     DNASequence("ATGX")
+
+
+# def test_empty_string():
+#     DNASequence("")
